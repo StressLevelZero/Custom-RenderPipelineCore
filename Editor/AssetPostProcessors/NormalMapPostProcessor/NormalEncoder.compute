@@ -2,10 +2,12 @@
 #pragma kernel EncodeHemiOctNormsRGBToRG
 #pragma kernel EncodeHemiOctNormsRGBToAG
 #pragma kernel EncodeHemiOctNormsAGToAG
+#pragma kernel EncodeHemiOctNormsDetail
 #pragma kernel PopulateVarRG
 #pragma kernel PopulateVarAG
 #pragma kernel AverageBlock
-#pragma kernel CalcVariance
+#pragma kernel CalcGeoSmoothness
+#pragma kernel CalcGeoSmoothnessDetail
 #pragma kernel SetSmooth
 #pragma kernel RGBtoDXTnm
 
@@ -89,6 +91,27 @@ void EncodeHemiOctNormsAGToAG (uint3 id : SV_DispatchThreadID)
     }
 }
 
+/*
+ * Encode a detail map containing AG normals to hemi-octahedral coordinates, preserving the red channel
+ */
+[numthreads(32u,32u,1u)]
+void EncodeHemiOctNormsDetail (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < (uint)_texDims.z && id.y < (uint)_texDims.w)
+    {
+        float4 originalColor = _Output[id.xy];
+        float3 normal = UnpackNormalRG(originalColor.ag);
+        float2 octCoords = PackNormalHemiOctEncode(normal);
+        octCoords = 0.5 * octCoords + 0.5;
+        _Output[id.xy] = float4(originalColor.r, octCoords.y, originalColor.b, octCoords.x);
+    }
+}
+
+
+/*
+ * For calculating variance of x and y according to the formula S^2 = avg(x^2) - avg(x)*avg(x).
+ * For each pixel of _Input take r, r^, g, g^2 the corresponding pixel of _Output.  
+ */
 [numthreads(32u,32u,1u)]
 void PopulateVarRG (uint3 id : SV_DispatchThreadID)
 {
@@ -109,6 +132,9 @@ void PopulateVarAG (uint3 id : SV_DispatchThreadID)
     }
 }
 
+/* Average blocks of _blockDim x _blockDim pixels from _Input and store them in a _texDims.zw section of _Output
+ * Expects _texDims.xy = _texDims.zw * _blockDim
+ */
 [numthreads(32u,32u,1u)]
 void AverageBlock (uint3 id : SV_DispatchThreadID)
 {
@@ -131,8 +157,15 @@ void AverageBlock (uint3 id : SV_DispatchThreadID)
     }
 }
 
+/* Calculate the geometric smoothness, equal to the standard deviation of the normals averaged to make the pixel
+ * Uses the formula S^2 = avg(x^2) - avg(x)*avg(x), where S^2 is the variance (std dev squared). Expects a texture
+ * in _Input that contains the averages of x, x^2, y, y^2 of the source image pixels contributing to the pixel in
+ * the output. Technically, the variances of the x and y also contain anisotropic roughness information, but for
+ * simplicity and the sake of storing the roughness in a single channel we just average them to get a single isotropic
+ * value
+ */
 [numthreads(32u,32u,1u)]
-void CalcVariance(uint3 id : SV_DispatchThreadID)
+void CalcGeoSmoothness(uint3 id : SV_DispatchThreadID)
 {
     if (id.x < (uint)_texDims.x && id.y < (uint)_texDims.y)
     {
@@ -142,6 +175,21 @@ void CalcVariance(uint3 id : SV_DispatchThreadID)
         avgVariance = pow(avgVariance, _roughnessPow);
         float4 originalColor = _Input2.Load(uint3(id.xy, _mipLevel));
         _Output[id.xy] = float4(originalColor.r, originalColor.g, avgVariance, originalColor.a);
+    }
+}
+
+//Multiply the smoothness multiplier in the blue channel by the geometric smoothness instead of storing it directly
+[numthreads(32u,32u,1u)]
+void CalcGeoSmoothnessDetail(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < (uint)_texDims.x && id.y < (uint)_texDims.y)
+    {
+        float4 varianceTerms = _Input.Load(uint3(id.xy, 0));
+        float2 variance = max(0, varianceTerms.yw - varianceTerms.xz * varianceTerms.xz);
+        float avgVariance = 1.0 - sqrt(0.5 * (variance.x + variance.y));
+        avgVariance = pow(avgVariance, _roughnessPow);
+        float4 originalColor = _Input2.Load(uint3(id.xy, _mipLevel));
+        _Output[id.xy] = float4(originalColor.r, originalColor.g, originalColor.b * avgVariance, originalColor.a);
     }
 }
 
