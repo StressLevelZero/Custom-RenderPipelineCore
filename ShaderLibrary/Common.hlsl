@@ -1322,11 +1322,19 @@ bool HasFlag(uint bitfield, uint flag)
 }
 
 // Normalize that account for vectors with zero length
-real3 SafeNormalize(float3 inVec)
+real3 SafeNormalize(real3 inVec)
 {
-    real dp3 = max(REAL_MIN, dot(inVec, inVec));
+    float dp3 = max(REAL_MIN, dot(inVec, inVec));
+    return inVec * (real)rsqrt(dp3);
+}
+
+#if REAL_IS_HALF //don't cast float to half if the input vector is a float3
+float3 SafeNormalize(float3 inVec)
+{
+    real dp3 = max(FLT_MIN, dot(inVec, inVec));
     return inVec * rsqrt(dp3);
 }
+#endif
 
 // Checks if a vector is normalized
 bool IsNormalized(float3 inVec)
@@ -1455,5 +1463,7 @@ TEMPLATE_1_REAL(ClampToFloat16Max, value, return min(value, HALF_MAX))
 #if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3
 #pragma warning (enable : 3205) // conversion of larger type to smaller
 #endif
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonHighP.hlsl"
 
 #endif // UNITY_COMMON_INCLUDED

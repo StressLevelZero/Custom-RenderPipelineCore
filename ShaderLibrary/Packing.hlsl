@@ -5,6 +5,14 @@
 #pragma warning (disable : 3205) // conversion of larger type to smaller
 #endif
 
+//Attempting to normalize a half vector doesn't quite work, is sometimes off significantly. Problem seems to be in the reciprocal square root
+// function. Solution: cast the dot product to a float before taking the rsqrt so we get a more accurate result.
+real3 AccurateNormalize(real3 x)
+{
+    float fdot = dot(x,x); 
+    return x * (real)rsqrt(dot(x,x));
+}
+
 //-----------------------------------------------------------------------------
 // Normal packing
 //-----------------------------------------------------------------------------
@@ -53,7 +61,7 @@ real3 UnpackNormalOctRectEncode(real2 f)
 
 // Ref: http://jcgt.org/published/0003/02/01/paper.pdf "A Survey of Efficient Representations for Independent Unit Vectors"
 // Encode with Oct, this function work with any size of output
-// return float between [-1, 1]
+// return real between [-1, 1]
 float2 PackNormalOctQuadEncode(float3 n)
 {
     //float l1norm    = dot(abs(n), 1.0);
@@ -206,7 +214,10 @@ real3 UnpackNormalmapRGorAG(real4 packedNormal, real scale = 1.0)
 real3 UnpackNormalHemiOctEncodeNoNormalize(real2 f)
 {
     real2 val = real2(f.x + f.y, f.x - f.y) * 0.5;
-    real3 n = real3(val, 1.0 - dot(abs(val), 1.0));
+    //real2 safeVal;// = abs(val);
+    //safeVal.x = val.x < -1.0E9 ? -val.x : val.x;
+    //safeVal.y = val.y < -1.0E9 ? -val.y : val.y;
+    real3 n = real3(val, 1.0 - abs(val.x) - abs(val.y));
     return n;
 }
 
@@ -214,9 +225,9 @@ real3 UnpackNormalHemiOctEncodeNoNormalize(real2 f)
 real3 UnpackHemiOctNormalsNoNormalize(real4 packedNormal)
 {
     #if defined(UNITY_ASTC_NORMALMAP_ENCODING)
-    real2 xy = 2.0 * packedNormal.ag - 1.0;
+    real2 xy = 2.0 * real2(packedNormal.ag) - 1.0;
     #elif defined(UNITY_NO_DXT5nm)
-    real2 xy = 2.0 * packedNormal.rg - 1.0;
+    real2 xy = 2.0 * real2(packedNormal.rg) - 1.0;
     #else
     real2 xy = 2.0 * real2(packedNormal.r * packedNormal.a, packedNormal.g) - 1.0;
     #endif
@@ -226,7 +237,7 @@ real3 UnpackHemiOctNormalsNoNormalize(real4 packedNormal)
 //New - Unpack Hemi-Octahedral normals from color with no scale factor
 real3 UnpackHemiOctNormalsNoScale(real4 packedNormal)
 {
-    return normalize(UnpackHemiOctNormalsNoNormalize(packedNormal));
+    return AccurateNormalize(UnpackHemiOctNormalsNoNormalize(packedNormal));
 }
 
 //New - Unpack Hemi-Octahedral normals from color
@@ -235,14 +246,15 @@ real3 UnpackHemiOctNormals(real4 packedNormal, real scale = 1.0)
 
     real3 normal = UnpackHemiOctNormalsNoNormalize(packedNormal);
     normal.xy *= scale;
-    return normalize(normal);
+    return AccurateNormalize(normal);
 }
 
 #ifndef BUILTIN_TARGET_API
 real3 UnpackNormal(real4 packedNormal)
 {
     //Use old normal functions if explicitly told to
-#if defined(USE_STANDARD_NORMALMAPS)
+
+#ifdef USE_STANDARD_NORMALMAPS
 
     #if defined(UNITY_ASTC_NORMALMAP_ENCODING)
         return UnpackNormalAG(packedNormal, 1.0);
