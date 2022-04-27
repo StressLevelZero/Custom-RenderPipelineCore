@@ -117,7 +117,7 @@ public class ReimportNormalMaps : EditorWindow
 
                     //AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                     importer.SaveAndReimport();
-
+                    Resources.UnloadUnusedAssets();
             }
             else
             {
