@@ -28,8 +28,15 @@ namespace NormalImportUtil
             {
                 EditorApplication.update -= importBreakpoint;
                 time = 0.0f;
+
+
+                EditorUtility.UnloadUnusedAssetsImmediate();
+                UnityEngine.Scripting.GarbageCollector.CollectIncremental(1000000000uL);
+                System.GC.Collect();
+                System.GC.WaitForPendingFinalizers();
+                System.GC.Collect();
+
                 normalImporter.ReimportNormals(blockStart);
-               
             }
 
             if (!EditorApplication.isCompiling && !EditorApplication.isUpdating)
@@ -42,11 +49,12 @@ namespace NormalImportUtil
     public class normalImporter
     {
         public static int blockSize;
+        public static int startIndex;
         public static int endIndex;
-        public static void ReimportNormals(int StartIndex)
+        public static void ReimportNormals(int index)
         {
-            int EndIndex = StartIndex + blockSize;
-
+            int EndIndex = index + blockSize;
+            
             if (!File.Exists(Path.Combine(Application.dataPath, "NormalMapList.txt")))
             {
                 EditorUtility.DisplayDialog("No file list", "No normal map file list, try regenerating the normal map list", "ok");
@@ -57,15 +65,16 @@ namespace NormalImportUtil
             string[] fileArray = wholeFile.Split('\n');
             Debug.Log(fileArray.Length);
             reader.Close();
+            reader.Dispose();
             //string[] AllTextureGUIDs = AssetDatabase.FindAssets("t:Texture2D");
-            int end = endIndex > 1 ? Mathf.Min(EndIndex, endIndex) : Mathf.Min(EndIndex, fileArray.Length);
+            int end = endIndex > 1 ? Mathf.Min(Mathf.Min(EndIndex, endIndex), fileArray.Length): Mathf.Min(EndIndex, fileArray.Length);
             if (fileArray.Length == 0)
             {
                 EditorUtility.DisplayDialog("Empty file list", "No normal maps in file list, try regenerating the normal map list", "ok");
                 return;
             }
-
-            for (int i = StartIndex; i < end; i++)
+            int minEnd = endIndex > 1 ? Mathf.Min(endIndex, fileArray.Length) : fileArray.Length;
+            for (int i = index; i < end; i++)
             {
                 string path = fileArray[i];
 
@@ -81,10 +90,8 @@ namespace NormalImportUtil
 
                     //AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                     importer.SaveAndReimport();
-                    Resources.UnloadUnusedAssets();
-                    System.GC.Collect();
-                    System.GC.WaitForPendingFinalizers();
-                    Debug.Log("Imported " + path);
+                   
+                    Debug.Log(string.Format("{0:F2}%, Imported {1}", 100.0f * (float)(i - startIndex + 1) / (minEnd - startIndex), path));
                 }
                 else
                 {
@@ -93,11 +100,12 @@ namespace NormalImportUtil
 
             }
 
-            StartIndex += blockSize;
-
-            if (StartIndex < fileArray.Length && blockSize > 0)
+            index += blockSize;
+            
+            if ((index < minEnd) && (blockSize > 1))
             {
-                ReimportBreakpoint.blockStart = StartIndex;
+                Debug.Log("Readding timer");
+                ReimportBreakpoint.blockStart = index;
                 EditorApplication.update += ReimportBreakpoint.importBreakpoint;
             }
 
@@ -107,8 +115,12 @@ namespace NormalImportUtil
 
     public class ReimportNormalMaps : EditorWindow
     {
+        public int ImportBlockSize = 10; 
+        public int WaitTicks = 2000;
+
         public int StartIndex = 0;
         public int EndIndex = -1;
+
 
         [MenuItem("Stress Level Zero/Reimport Normal Maps")]
         static void Init()
@@ -120,6 +132,8 @@ namespace NormalImportUtil
 
         void OnGUI()
         {
+            ImportBlockSize = EditorGUILayout.IntField("Num files to import at once", ImportBlockSize);
+            WaitTicks = EditorGUILayout.IntField("Pause time (editor ticks)", WaitTicks);
             StartIndex = EditorGUILayout.IntField("Start Importing from index", StartIndex);
             EndIndex = EditorGUILayout.IntField("End Importing at index", EndIndex);
             if (GUILayout.Button("Create Normal List"))
@@ -190,11 +204,13 @@ namespace NormalImportUtil
 
         void ReimportAllNormals()
         {
-            normalImporter.blockSize = 10;
+
+            normalImporter.blockSize = ImportBlockSize;
+            normalImporter.startIndex = StartIndex;
             normalImporter.endIndex = EndIndex;
             ReimportBreakpoint.time = 0;
             ReimportBreakpoint.blockStart = StartIndex;
-            ReimportBreakpoint.breakTime = 50;
+            ReimportBreakpoint.breakTime = WaitTicks;
             normalImporter.ReimportNormals(StartIndex);
             /*
             if (!File.Exists(Path.Combine(Application.dataPath, "NormalMapList.txt")))
