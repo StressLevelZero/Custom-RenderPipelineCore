@@ -71,6 +71,7 @@ void EncodeHemiOctNormsRGBToAG (uint3 id : SV_DispatchThreadID)
         float3 normal = UnpackNormalRG(originalColor.rg);
         float2 octCoords = PackNormalHemiOctEncode(normal);
         octCoords = 0.5 * octCoords + 0.5;
+
         _Output[id.xy] = float4(1.0f, octCoords.y, originalColor.b, octCoords.x);
     }
 }

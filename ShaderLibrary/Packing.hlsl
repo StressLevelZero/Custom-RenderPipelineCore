@@ -213,11 +213,11 @@ real3 UnpackNormalmapRGorAG(real4 packedNormal, real scale = 1.0)
 //New - Decode hemi octahedral coordinates to normal vector, without normalization
 real3 UnpackNormalHemiOctEncodeNoNormalize(real2 f)
 {
-    real2 val = real2(f.x + f.y, f.x - f.y) * 0.5;
+    real2 val = real2(f.x + f.y, f.x - f.y);
     //real2 safeVal;// = abs(val);
     //safeVal.x = val.x < -1.0E9 ? -val.x : val.x;
     //safeVal.y = val.y < -1.0E9 ? -val.y : val.y;
-    real3 n = real3(val, 1.0 - abs(val.x) - abs(val.y));
+    real3 n = real3(val, 2.0 - abs(val.x) - abs(val.y));
     return n;
 }
 
