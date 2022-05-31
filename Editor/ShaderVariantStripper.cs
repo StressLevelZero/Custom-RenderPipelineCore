@@ -4,7 +4,7 @@ using UnityEditor.Build;
 using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
-
+/*
 class ShaderVariantStripper : IPreprocessShaders
 {
     public int callbackOrder { get { return 0; } }
@@ -110,3 +110,4 @@ class ShaderVariantStripper : IPreprocessShaders
 
     
 }
+*/
