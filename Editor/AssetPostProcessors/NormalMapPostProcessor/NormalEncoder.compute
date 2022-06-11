@@ -172,8 +172,8 @@ void CalcGeoSmoothness(uint3 id : SV_DispatchThreadID)
     {
         float4 varianceTerms = _Input.Load(uint3(id.xy, 0));
         float2 variance = max(0, varianceTerms.yw - varianceTerms.xz * varianceTerms.xz);
-        float avgVariance = 1.0 - sqrt(0.5 * (variance.x + variance.y));
-        avgVariance = pow(avgVariance, _roughnessPow);
+        float avgVariance = 1.0 - pow(0.5 * (variance.x + variance.y), 0.25); //perceptual roughness = sqrt(roughness) and roughness = std dev = sqrt(variance)
+        avgVariance = pow(avgVariance, _roughnessPow); 
         float4 originalColor = _Input2.Load(uint3(id.xy, _mipLevel));
         _Output[id.xy] = float4(originalColor.r, originalColor.g, avgVariance, originalColor.a);
     }
@@ -187,7 +187,7 @@ void CalcGeoSmoothnessDetail(uint3 id : SV_DispatchThreadID)
     {
         float4 varianceTerms = _Input.Load(uint3(id.xy, 0));
         float2 variance = max(0, varianceTerms.yw - varianceTerms.xz * varianceTerms.xz);
-        float avgVariance = 1.0 - sqrt(0.5 * (variance.x + variance.y));
+        float avgVariance = 1.0 - pow(0.5 * (variance.x + variance.y), 0.25);
         avgVariance = pow(avgVariance, _roughnessPow);
         float4 originalColor = _Input2.Load(uint3(id.xy, _mipLevel));
         _Output[id.xy] = float4(originalColor.r, originalColor.g, originalColor.b * avgVariance, originalColor.a);
