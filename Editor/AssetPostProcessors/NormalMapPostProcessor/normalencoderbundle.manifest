@@ -1,0 +1,17 @@
+ManifestFileVersion: 0
+CRC: 1796825277
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 4769bf898b3cd083cf0a3c2bba4b6b75
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: febb50994d26f4cbc302a87722ce8b79
+HashAppended: 0
+ClassTypes:
+- Class: 72
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/Resources/NormalEncoder.compute
+Dependencies: []
