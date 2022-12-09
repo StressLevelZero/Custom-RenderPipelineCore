@@ -1,17 +1,20 @@
 ManifestFileVersion: 0
-CRC: 1796825277
+CRC: 356956012
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 4769bf898b3cd083cf0a3c2bba4b6b75
+    Hash: 262fd1d12cbbc161bd1b95b92ad9fa34
   TypeTreeHash:
     serializedVersion: 2
-    Hash: febb50994d26f4cbc302a87722ce8b79
+    Hash: 005d97ef7cbaa06576dc26c3455c8505
 HashAppended: 0
 ClassTypes:
+- Class: 48
+  Script: {instanceID: 0}
 - Class: 72
   Script: {instanceID: 0}
 SerializeReferenceClassIdentifiers: []
 Assets:
-- Assets/Resources/NormalEncoder.compute
+- Packages/com.unity.render-pipelines.core/Editor/AssetPostProcessors/NormalMapPostProcessor/NMPP_Blit_LOD.shader
+- Packages/com.unity.render-pipelines.core/Editor/AssetPostProcessors/NormalMapPostProcessor/NormalEncoder.compute
 Dependencies: []
