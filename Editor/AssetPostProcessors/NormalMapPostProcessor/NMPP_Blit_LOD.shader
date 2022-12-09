@@ -110,7 +110,7 @@ Shader "Hidden/NormalMapPPBlitLOD"
                         break;
                     }
                     startCoord.x += mipSize.x;
-                    mipSize = mipSize >> 1;
+                    mipSize = max(mipSize >> 1, int2(1,1));
                     mipLevel++;
                 }
                 #ifdef UNITY_UV_STARTS_AT_TOP
