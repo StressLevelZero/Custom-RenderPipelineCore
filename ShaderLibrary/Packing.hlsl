@@ -163,19 +163,25 @@ real3 UnpackNormalTetraEncode(real2 f, uint faceIndex)
     return mul(n, tetraBasisArray[faceIndex]);
 }
 
+// SLZ MODIFIED // Unity's default functions map Z from 1.0 to -1.0 for RGB normal maps used by mobile. This is bad and wrong. Z should only range from 0 to 1
+
 // Unpack from normal map
 real3 UnpackNormalRGB(real4 packedNormal, real scale = 1.0)
 {
     real3 normal;
-    normal.xyz = packedNormal.rgb * 2.0 - 1.0;
+    //normal.xyz = packedNormal.rgb * 2.0 - 1.0; // WRONG
+    normal.xyz = real3(packedNormal.rg * 2.0 - 1.0, packedNormal.b);
     normal.xy *= scale;
     return normal;
 }
 
 real3 UnpackNormalRGBNoScale(real4 packedNormal)
 {
-    return packedNormal.rgb * 2.0 - 1.0;
+    //return packedNormal.rgb * 2.0 - 1.0; // WRONG
+    return real3(packedNormal.rg * 2.0 - 1.0, packedNormal.b);
 }
+
+// END SLZ MODIFIED
 
 real3 UnpackNormalAG(real4 packedNormal, real scale = 1.0)
 {
@@ -202,9 +208,57 @@ real3 UnpackNormalmapRGorAG(real4 packedNormal, real scale = 1.0)
     return UnpackNormalAG(packedNormal, scale);
 }
 
+
+// SLZ MODIFIED // Porting octahedral and hemi-octaherdal packing functions from older versions of the core RP that were removed for some reason
+
+//New - Decode hemi octahedral coordinates to normal vector, without normalization
+real3 UnpackNormalHemiOctEncodeNoNormalize(real2 f)
+{
+    real2 val = real2(f.x + f.y, f.x - f.y);
+    //real2 safeVal;// = abs(val);
+    //safeVal.x = val.x < -1.0E9 ? -val.x : val.x;
+    //safeVal.y = val.y < -1.0E9 ? -val.y : val.y;
+    real3 n = real3(val, 2.0 - abs(val.x) - abs(val.y));
+    return n;
+}
+
+//New - Unpack Hemi-Octahedral normals from color without normalizing vector or scaling
+real3 UnpackHemiOctNormalsNoNormalize(real4 packedNormal)
+{
+#if defined(UNITY_ASTC_NORMALMAP_ENCODING)
+    real2 xy = 2.0 * real2(packedNormal.ag) - 1.0;
+#elif defined(UNITY_NO_DXT5nm)
+    real2 xy = 2.0 * real2(packedNormal.rg) - 1.0;
+#else
+    real2 xy = 2.0 * real2(packedNormal.r * packedNormal.a, packedNormal.g) - 1.0;
+#endif
+    return UnpackNormalHemiOctEncodeNoNormalize(xy);
+}
+
+//New - Unpack Hemi-Octahedral normals from color with no scale factor
+real3 UnpackHemiOctNormalsNoScale(real4 packedNormal)
+{
+    return SLZAccurateNormalize(UnpackHemiOctNormalsNoNormalize(packedNormal));
+}
+
+//New - Unpack Hemi-Octahedral normals from color
+real3 UnpackHemiOctNormals(real4 packedNormal, real scale = 1.0)
+{
+
+    real3 normal = UnpackHemiOctNormalsNoNormalize(packedNormal);
+    normal.xy *= scale;
+    return SLZAccurateNormalize(normal);
+}
+
+// END SLZ MODIFIED
+
+// SLZ MODIFIED // retarget unpacking functions to do hemi-octahedral unpacking by default, revert to old behavior by defining USE_STANDARD_NORMALMAPS
+
 #ifndef BUILTIN_TARGET_API
 real3 UnpackNormal(real4 packedNormal)
 {
+#ifdef USE_STANDARD_NORMALMAPS
+
 #if defined(UNITY_ASTC_NORMALMAP_ENCODING)
     return UnpackNormalAG(packedNormal, 1.0);
 #elif defined(UNITY_NO_DXT5nm)
@@ -213,11 +267,18 @@ real3 UnpackNormal(real4 packedNormal)
     // Compiler will optimize the scale away
     return UnpackNormalmapRGorAG(packedNormal, 1.0);
 #endif
+
+#else
+
+    return UnpackHemiOctNormalsNoScale(packedNormal);
+
+#endif
 }
 #endif
 
 real3 UnpackNormalScale(real4 packedNormal, real bumpScale)
 {
+#if defined(USE_STANDARD_NORMALMAPS)
 #if defined(UNITY_ASTC_NORMALMAP_ENCODING)
     return UnpackNormalAG(packedNormal, bumpScale);
 #elif defined(UNITY_NO_DXT5nm)
@@ -225,7 +286,12 @@ real3 UnpackNormalScale(real4 packedNormal, real bumpScale)
 #else
     return UnpackNormalmapRGorAG(packedNormal, bumpScale);
 #endif
+#else
+    return UnpackHemiOctNormals(packedNormal, bumpScale);
+#endif
 }
+
+// END SLZ MODIFIED
 
 //-----------------------------------------------------------------------------
 // HDR packing

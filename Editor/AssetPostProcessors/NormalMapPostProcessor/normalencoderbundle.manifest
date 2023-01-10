@@ -1,0 +1,20 @@
+ManifestFileVersion: 0
+CRC: 2473635491
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: e65e91bcc8b6dee156e92e407f9b52b4
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 005d97ef7cbaa06576dc26c3455c8505
+HashAppended: 0
+ClassTypes:
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 72
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Packages/com.unity.render-pipelines.core/Editor/AssetPostProcessors/NormalMapPostProcessor/NMPP_Blit_LOD.shader
+- Packages/com.unity.render-pipelines.core/Editor/AssetPostProcessors/NormalMapPostProcessor/NormalEncoder.compute
+Dependencies: []

@@ -1368,12 +1368,36 @@ bool HasFlag(uint bitfield, uint flag)
     return (bitfield & flag) != 0;
 }
 
+// SLZ MODIFIED // don't cast float to half on return if the input vector is a float3
+
 // Normalize that account for vectors with zero length
-real3 SafeNormalize(float3 inVec)
+real3 SafeNormalize(real3 inVec)
+{
+    float dp3 = max(FLT_MIN, dot((float)inVec, (float)inVec));
+    return inVec * rsqrt(dp3);
+}
+
+#if REAL_IS_HALF
+float3 SafeNormalize(float3 inVec)
 {
     float dp3 = max(FLT_MIN, dot(inVec, inVec));
     return inVec * rsqrt(dp3);
 }
+#endif
+
+//Attempting to normalize a half vector doesn't quite work, is sometimes off significantly. Problem seems to be in the reciprocal square root
+// function. Solution: cast the dot product to a float before taking the rsqrt so we get a more accurate result.
+real3 SLZAccurateNormalize(real3 x)
+{
+#if REAL_IS_HALF
+    float fdot = dot(x, x);
+    return x * (real)rsqrt(dot(x, x));
+#else
+    return normalize(x);
+#endif
+}
+
+// END SLZ MODIFIED
 
 // Checks if a vector is normalized
 bool IsNormalized(float3 inVec)
