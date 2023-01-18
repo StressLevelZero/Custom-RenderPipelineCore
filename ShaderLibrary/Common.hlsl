@@ -1373,7 +1373,7 @@ bool HasFlag(uint bitfield, uint flag)
 // Normalize that account for vectors with zero length
 real3 SafeNormalize(real3 inVec)
 {
-    float dp3 = max(FLT_MIN, dot((float)inVec, (float)inVec));
+    float dp3 = max(REAL_MIN, dot(inVec, inVec));
     return inVec * rsqrt(dp3);
 }
 
@@ -1391,7 +1391,7 @@ real3 SLZAccurateNormalize(real3 x)
 {
 #if REAL_IS_HALF
     float fdot = dot(x, x);
-    return x * (real)rsqrt(dot(x, x));
+    return x * (real)rsqrt(fdot);
 #else
     return normalize(x);
 #endif
