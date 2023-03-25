@@ -9,4 +9,11 @@ SAMPLER(sampler_LinearClamp);
 SAMPLER(sampler_PointRepeat);
 SAMPLER(sampler_LinearRepeat);
 
+// SLZ MODIFIED // More samplers
+
+SAMPLER(sampler_TrilinearRepeat);
+SAMPLER(sampler_TrilinearClamp);
+
+// END SLZ MODIFIED
+
 #endif //UNITY_CORE_SAMPLERS_INCLUDED
