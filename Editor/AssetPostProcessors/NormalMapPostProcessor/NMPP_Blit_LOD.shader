@@ -92,35 +92,64 @@ Shader "Hidden/NormalMapPPBlitLOD"
             {
                 float2 uv = input.uv;
 #ifdef UNITY_UV_STARTS_AT_TOP 
-                clip(uv.y - 0.5);
+                //clip(uv.y - 0.5);
 #else
-                clip(0.5 - uv.y);
+                //clip(0.5 - uv.y);
 #endif
                 int uvXInt = uv.x * _Mip.x;
                 int2 startCoord = int2(0, 0);
+#ifdef UNITY_UV_STARTS_AT_TOP
+                startCoord.y = _Mip.w != 0 ? _Mip.y : 0;
+#endif
                 int2 mipSize = int2(_Mip.xy) >> 1;
                 int mipLevel = 1;
                 int2 mipCoord = int2(0,0); 
                 int maxMip = min(14, _Mip.z);
-                for (int i = 0; i < maxMip; i++)
+                mipCoord = int2(uv * float2(_Mip.xy));
+                UNITY_BRANCH if (_Mip.w == 0)
                 {
-                    mipCoord = int2(uv * float2(_Mip.xy));
-                    if ((mipCoord.x - startCoord.x) < mipSize.x)
+                    for (int i = 0; i < maxMip; i++)
                     {
-                        break;
+                        
+                        if ((mipCoord.x - startCoord.x) < mipSize.x)
+                        {
+                            break;
+                        }
+                        startCoord.x += mipSize.x;
+                        mipSize = max(mipSize >> 1, int2(1, 1));
+                        mipLevel++;
                     }
-                    startCoord.x += mipSize.x;
-                    mipSize = max(mipSize >> 1, int2(1,1));
-                    mipLevel++;
+                }
+                else
+                {
+                    for (int i = 0; i < maxMip; i++)
+                    {
+                    #ifdef UNITY_UV_STARTS_AT_TOP
+                        startCoord.y -= mipSize.y;
+                    #endif
+#ifdef UNITY_UV_STARTS_AT_TOP
+                        if (mipCoord.y >= startCoord.y)
+#else
+                        if ((mipCoord.y - startCoord.y) < mipSize.y)
+#endif
+                        {
+                            break;
+                        }
+#ifndef UNITY_UV_STARTS_AT_TOP
+                        startCoord.y += mipSize.y;
+#endif
+                        mipSize = max(mipSize >> 1, int2(1, 1));
+                        mipLevel++;
+                    }
                 }
                 #ifdef UNITY_UV_STARTS_AT_TOP
-                startCoord.y += _Mip.y - mipSize.y;
+                startCoord.y = _Mip.w == 0 ? startCoord.y + _Mip.y - mipSize.y : startCoord.y;
                 #endif
                 int2 uvCoord = mipCoord - startCoord;
-                if (uvCoord.y < 0 || uvCoord.y >= mipSize.y)
-                {
-                    discard;
-                }
+                //if (uvCoord.y < 0 || uvCoord.y >= mipSize.y)
+                //{
+                //    discard;
+                //}
                 half4 col = LOAD_TEXTURE2D_LOD(_MipSource, uvCoord, mipLevel);
                 #ifdef _LINEAR_TO_SRGB_CONVERSION
                 col = LinearToSRGB(col);
