@@ -541,6 +541,10 @@ namespace UnityEngine.Rendering
                     vrUsage = vrUsage,
                     name = CoreUtils.GetRenderTargetAutoName(width, height, slices, format, name, mips: useMipMap, enableMSAA: enableMSAA, msaaSamples: msaaSamples)
                 };
+                if (depthBufferBits == DepthBits.Depth24)
+                {
+                    rt.depthStencilFormat = GraphicsFormat.D24_UNorm_S8_UInt;
+                }
             }
             else
             {
@@ -581,6 +585,8 @@ namespace UnityEngine.Rendering
 
             return newRT;
         }
+
+
 
         // Next two methods are used to allocate RenderTexture that depend on the frame settings (resolution and msaa for now)
         // RenderTextures allocated this way are meant to be defined by a scale of camera resolution (full/half/quarter resolution for example).
@@ -816,6 +822,10 @@ namespace UnityEngine.Rendering
                     vrUsage = vrUsage,
                     name = CoreUtils.GetRenderTargetAutoName(width, height, slices, colorFormat, dimension, name, mips: useMipMap, enableMSAA: enableMSAA, msaaSamples: msaaSamples, dynamicRes: useDynamicScale)
                 };
+                if (depthBufferBits == DepthBits.Depth24)
+                {
+                    rt.depthStencilFormat = GraphicsFormat.D24_UNorm_S8_UInt;
+                }
             }
             else
             {
