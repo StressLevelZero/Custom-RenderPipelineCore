@@ -51,6 +51,7 @@ namespace NormalImportUtil
         public static int blockSize;
         public static int startIndex;
         public static int endIndex;
+        public static bool incrementFileVersion;
         public static void ReimportNormals(int index)
         {
             int EndIndex = index + blockSize;
@@ -77,14 +78,23 @@ namespace NormalImportUtil
             for (int i = index; i < end; i++)
             {
                 string path = fileArray[i];
-
+                if (path.Length < 2)
+                {
+                    continue;
+                }
                 TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
-
+               
 
                 if (importer != null)
                 {
+                    //Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                     //Texture2D tex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
-                    
+                    if (incrementFileVersion)
+                    {
+                        ExtraTextureSettings texSettings = ExtraTextureSettings.ReadFromUserData(importer.userData);
+                        texSettings.fileVersion += 1;
+                        importer.userData = texSettings.Serialize();
+                    }
                     EditorUtility.SetDirty(importer);
                     //EditorUtility.SetDirty(tex);
 
@@ -92,10 +102,13 @@ namespace NormalImportUtil
                     importer.SaveAndReimport();
                    
                     Debug.Log(string.Format("{0:F2}%, Imported {1}", 100.0f * (float)(i - startIndex + 1) / (minEnd - startIndex), path));
+                    Resources.UnloadAsset(importer); importer = null;
+                    //Resources.UnloadAsset(texture); texture = null;
+                    
                 }
                 else
                 {
-                    Debug.Log("Invalid Importer");
+                    Debug.Log("Invalid Importer at path: " + path);
                 }
 
             }
@@ -121,6 +134,8 @@ namespace NormalImportUtil
         public int StartIndex = 0;
         public int EndIndex = -1;
 
+        public bool includePackages;
+        public bool incrementFileVersion;
 
         [MenuItem("Stress Level Zero/Reimport Normal Maps")]
         static void Init()
@@ -136,44 +151,45 @@ namespace NormalImportUtil
             WaitTicks = EditorGUILayout.IntField("Pause time (editor ticks)", WaitTicks);
             StartIndex = EditorGUILayout.IntField("Start Importing from index", StartIndex);
             EndIndex = EditorGUILayout.IntField("End Importing at index", EndIndex);
+            includePackages = EditorGUILayout.Toggle("Include textures in packages", includePackages);
+            incrementFileVersion = EditorGUILayout.Toggle("Bump file version", incrementFileVersion);
             if (GUILayout.Button("Create Normal List"))
             {
-                CreateNormalList();
+                CreateNormalList(includePackages);
             }
             if (GUILayout.Button("Reimport all normal maps"))
             {
-                ReimportAllNormals();
+                ReimportAllNormals(incrementFileVersion);
             }
 
         }
 
-        void CreateNormalList()
+        void CreateNormalList(bool includePackages)
         {
             string[] AllTextureGUIDs = AssetDatabase.FindAssets("t:Texture2D");
+            StreamWriter writer = new StreamWriter("Assets/NormalMapList.txt", false);
+            writer.NewLine = "\n";
             string fileOut = "";
+
             string artifactOut = "";
             for (int i = 0; i < AllTextureGUIDs.Length; i++)
             {
+                
                 EditorUtility.DisplayProgressBar("Compiling List of normal/detail maps",
                     string.Format("{0} out of {1}", i + 1, AllTextureGUIDs.Length), (float)i / (float)AllTextureGUIDs.Length);
                 string path = AssetDatabase.GUIDToAssetPath(AllTextureGUIDs[i]);
+
+                if (!includePackages && path.StartsWith("Packages"))
+                {
+                    continue;
+                }
+
                 bool isDetail = false;
                 TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
                 if (importer != null && importer.textureType != TextureImporterType.NormalMap && importer.userData != null && importer.userData.Length > 0)
                 {
-                    XmlSerializer serializer = new XmlSerializer(typeof(ExtraTextureSettings));
-                    StringReader sr = new StringReader(importer.userData);
-                    ExtraTextureSettings texSettings;
-
-                    try
-                    {
-                        texSettings = (ExtraTextureSettings)serializer.Deserialize(sr);
-                        isDetail = texSettings.detailMap;
-                    }
-                    catch
-                    {
-                        isDetail = Path.GetFileNameWithoutExtension(path).ToLower().EndsWith("_detailmap");
-                    }
+                    ExtraTextureSettings texSettings = ExtraTextureSettings.ReadFromUserData(importer.userData);
+                    isDetail = texSettings.detailMap;
                 }
                 else
                 {
@@ -182,18 +198,11 @@ namespace NormalImportUtil
 
                 if (importer != null && (importer.textureType == TextureImporterType.NormalMap || isDetail))
                 {
-                    fileOut += path;
-
-                    if (i != AllTextureGUIDs.Length - 1)
-                    {
-                        fileOut += "\n";
-                        // artifactOut += "\n";
-                    }
+                    writer.WriteLine(path);
                 }
             }
             EditorUtility.ClearProgressBar();
-            StreamWriter writer = new StreamWriter("Assets/NormalMapList.txt", false);
-            writer.Write(fileOut);
+            
             writer.Close();
             /*
             StreamWriter writer2 = new StreamWriter("Assets/NormalMapArtifacts.txt", false);
@@ -202,15 +211,17 @@ namespace NormalImportUtil
             */
         }
 
-        void ReimportAllNormals()
+        void ReimportAllNormals(bool incrementFileVersion)
         {
 
             normalImporter.blockSize = ImportBlockSize;
             normalImporter.startIndex = StartIndex;
             normalImporter.endIndex = EndIndex;
+            normalImporter.incrementFileVersion = incrementFileVersion;
             ReimportBreakpoint.time = 0;
             ReimportBreakpoint.blockStart = StartIndex;
             ReimportBreakpoint.breakTime = WaitTicks;
+            
             normalImporter.ReimportNormals(StartIndex);
             /*
             if (!File.Exists(Path.Combine(Application.dataPath, "NormalMapList.txt")))
