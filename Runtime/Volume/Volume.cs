@@ -127,7 +127,7 @@ namespace UnityEngine.Rendering
         {
             VolumeManager.instance.Unregister(this, gameObject.layer);
         }
-
+#if UNITY_EDITOR
         void Update()
         {
             // Unfortunately we need to track the current layer to update the volume manager in
@@ -146,11 +146,12 @@ namespace UnityEngine.Rendering
                 m_PreviousPriority = priority;
             }
 
-#if UNITY_EDITOR
+
             // In the editor, we refresh the list of colliders at every frame because it's frequent to add/remove them
             GetComponents(m_Colliders);
-#endif
+
         }
+#endif
 
         internal void UpdateLayer()
         {
