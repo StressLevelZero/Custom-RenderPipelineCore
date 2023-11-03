@@ -28,7 +28,9 @@ namespace SLZ.SLZEditorTools
                 "Packages/com.unity.render-pipelines.core/Editor/AssetPostProcessors/NormalMapPostProcessor/NMPP_Blit_LOD.shader" };
 
             BuildPipeline.BuildAssetBundles(dir, buildMap, BuildAssetBundleOptions.UncompressedAssetBundle, BuildTarget.StandaloneWindows);
-            
+            buildMap[0].assetBundleName = "normalencoderbundle_android";
+            BuildPipeline.BuildAssetBundles(dir, buildMap, BuildAssetBundleOptions.UncompressedAssetBundle, BuildTarget.Android);
+
             File.Delete(Path.Combine(sysDir, "NormalMapPostProcessor"));
             File.Delete(Path.Combine(sysDir, "NormalMapPostProcessor.manifest"));
         }

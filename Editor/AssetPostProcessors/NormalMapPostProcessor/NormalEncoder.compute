@@ -10,6 +10,7 @@
 #pragma kernel CalcGeoSmoothnessDetail
 #pragma kernel SetSmooth
 #pragma kernel RGBtoDXTnm
+#pragma kernel CopyTexMip
 
 Texture2D<float4> _Input;
 Texture2D<float4> _Input2;
@@ -213,5 +214,14 @@ void RGBtoDXTnm(uint3 id : SV_DispatchThreadID)
     {
         float4 color = _Output[id.xy];
         _Output[id.xy] = float4(1.0, color.g, color.b, color.r);
+    }
+}
+
+[numthreads(32u,32u,1u)]
+void CopyTexMip(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < (uint)_texDims.z && id.y < (uint)_texDims.w)
+    {
+        _Output[id.xy] = _Input[id.xy];
     }
 }
