@@ -307,6 +307,86 @@ real3 DecodeHDREnvironment(real4 encodedIrradiance, real4 decodeInstructions)
 #define LIGHTMAP_EXTRA_ARGS_USE uv
 #endif
 
+// Bicubic interpolation
+
+float ftBicubic_w0(float a)
+{
+    return (1.0f/6.0f)*(a*(a*(-a + 3.0f) - 3.0f) + 1.0f);
+}
+
+float ftBicubic_w1(float a)
+{
+    return (1.0f/6.0f)*(a*a*(3.0f*a - 6.0f) + 4.0f);
+}
+
+float ftBicubic_w2(float a)
+{
+    return (1.0f/6.0f)*(a*(a*(-3.0f*a + 3.0f) + 3.0f) + 1.0f);
+}
+
+float ftBicubic_w3(float a)
+{
+    return (1.0f/6.0f)*(a*a*a);
+}
+
+float ftBicubic_g0(float a)
+{
+    return ftBicubic_w0(a) + ftBicubic_w1(a);
+}
+
+float ftBicubic_g1(float a)
+{
+    return ftBicubic_w2(a) + ftBicubic_w3(a);
+}
+
+float ftBicubic_h0(float a)
+{
+    return -1.0f + ftBicubic_w1(a) / (ftBicubic_w0(a) + ftBicubic_w1(a)) + 0.5f;
+}
+
+float ftBicubic_h1(float a)
+{
+    return 1.0f + ftBicubic_w3(a) / (ftBicubic_w2(a) + ftBicubic_w3(a)) + 0.5f;
+}
+
+float4 ftLightmapBicubic( float2 uv , TEXTURE2D_LIGHTMAP_PARAM(lightmapTex, lightmapSampler))
+{
+    #if !SHADER_API_MOBILE
+    float width, height;
+    lightmapTex.GetDimensions(width, height);
+
+    float x = uv.x * width;
+    float y = uv.y * height;
+
+    x -= 0.5f;
+    y -= 0.5f;
+
+    float px = floor(x);
+    float py = floor(y);
+
+    float fx = x - px;
+    float fy = y - py;
+
+    // note: we could store these functions in a lookup table texture, but maths is cheap
+    float g0x = ftBicubic_g0(fx);
+    float g1x = ftBicubic_g1(fx);
+    float h0x = ftBicubic_h0(fx);
+    float h1x = ftBicubic_h1(fx);
+    float h0y = ftBicubic_h0(fy);
+    float h1y = ftBicubic_h1(fy);
+    
+        return ftBicubic_g0(fy) * ( g0x * SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, (float2(px + h0x, py + h0y) * 1.0f/width))   +
+                          g1x * SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, (float2(px + h1x, py + h0y) * 1.0f/width))) +
+
+               ftBicubic_g1(fy) * ( g0x * SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, (float2(px + h0x, py + h1y) * 1.0f/width))   +
+                          g1x * SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, (float2(px + h1x, py + h1y) * 1.0f/width)));
+    #else
+    return SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE);
+    #endif
+
+}
+
+
 real3 SampleSingleLightmap(TEXTURE2D_LIGHTMAP_PARAM(lightmapTex, lightmapSampler), LIGHTMAP_EXTRA_ARGS, float4 transform, bool encodedLightmap, real4 decodeInstructions)
 {
     // transform is scale and bias
@@ -315,12 +395,14 @@ real3 SampleSingleLightmap(TEXTURE2D_LIGHTMAP_PARAM(lightmapTex, lightmapSampler
     // Remark: baked lightmap is RGBM for now, dynamic lightmap is RGB9E5
     if (encodedLightmap)
     {
-        real4 encodedIlluminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgba;
+        //real4 encodedIlluminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgba;
+        real4 encodedIlluminance = ftLightmapBicubic(uv, lightmapTex, lightmapSampler).rgba;
         illuminance = DecodeLightmap(encodedIlluminance, decodeInstructions);
     }
     else
     {
-        illuminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgb;
+        //illuminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgb;
+        illuminance = ftLightmapBicubic(uv, lightmapTex, lightmapSampler).rgb;
     }
     return illuminance;
 }
@@ -338,25 +420,30 @@ void SampleDirectionalLightmap(TEXTURE2D_LIGHTMAP_PARAM(lightmapTex, lightmapSam
     // transform is scale and bias
     uv = uv * transform.xy + transform.zw;
 
-    real4 direction = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapDirTex, lightmapDirSampler, LIGHTMAP_EXTRA_ARGS_USE);
+    //real4 direction = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapDirTex, lightmapDirSampler, LIGHTMAP_EXTRA_ARGS_USE);
+    real4 direction = ftLightmapBicubic(uv, lightmapDirTex, lightmapDirSampler);
     // Remark: baked lightmap is RGBM for now, dynamic lightmap is RGB9E5
     real3 illuminance = real3(0.0, 0.0, 0.0);
     if (encodedLightmap)
     {
-        real4 encodedIlluminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgba;
+        //real4 encodedIlluminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgba;
+        real4 encodedIlluminance = ftLightmapBicubic(uv, lightmapTex, lightmapSampler).rgba;
         illuminance = DecodeLightmap(encodedIlluminance, decodeInstructions);
     }
     else
     {
-        illuminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgb;
+       // illuminance = SAMPLE_TEXTURE2D_LIGHTMAP(lightmapTex, lightmapSampler, LIGHTMAP_EXTRA_ARGS_USE).rgb;
+        illuminance = ftLightmapBicubic(uv, lightmapTex, lightmapSampler).rgb;
+
     }
 
     real halfLambert = dot(normalWS, direction.xyz - 0.5) + 0.5;
     bakeDiffuseLighting += illuminance * halfLambert / max(1e-4, direction.w);
-
-    real backHalfLambert = dot(backNormalWS, direction.xyz - 0.5) + 0.5;
-    backBakeDiffuseLighting += illuminance * backHalfLambert / max(1e-4, direction.w);
+    // It doesn't seem like the back bake is used by anything and everything is using the shortcut function which omits this result
+    // real backHalfLambert = dot(backNormalWS, direction.xyz - 0.5) + 0.5;
+    // backBakeDiffuseLighting += illuminance * backHalfLambert / max(1e-4, direction.w);
 }
+
 
 // Just a shortcut that call function above
 real3 SampleDirectionalLightmap(TEXTURE2D_LIGHTMAP_PARAM(lightmapTex, lightmapSampler), TEXTURE2D_LIGHTMAP_PARAM(lightmapDirTex, lightmapDirSampler), LIGHTMAP_EXTRA_ARGS, float4 transform,
