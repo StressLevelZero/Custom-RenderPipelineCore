@@ -11,6 +11,7 @@
 #pragma kernel SetSmooth
 #pragma kernel RGBtoDXTnm
 #pragma kernel CopyTexMip
+#pragma kernel BlitCompute
 
 Texture2D<float4> _Input;
 Texture2D<float4> _Input2;
@@ -19,6 +20,8 @@ uint4 _texDims; //_Input width, _Input height, _Output width, _Output height;
 uint _blockDim;
 uint _mipLevel;
 float _roughnessPow;
+
+SamplerState sampler_LinearClamp;
 
 /*
  * Normal vector to hemi-octahedral coordinates
@@ -223,5 +226,16 @@ void CopyTexMip(uint3 id : SV_DispatchThreadID)
     if (id.x < (uint)_texDims.z && id.y < (uint)_texDims.w)
     {
         _Output[id.xy] = _Input[id.xy];
+    }
+}
+
+[numthreads(32u,32u,1u)]
+void BlitCompute(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < (uint)_texDims.z && id.y < (uint)_texDims.w)
+    {
+        float2 uv = (float2(id.xy) + 0.5.xx) / float2(_texDims.zw);
+        float4 color = _Input.SampleLevel(sampler_LinearClamp, uv, _mipLevel);
+        _Output[id.xy] = color;
     }
 }
