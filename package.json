@@ -1,9 +1,10 @@
 {
   "name": "com.unity.render-pipelines.core",
   "description": "SLZ's Modified SRP Core",
-  "version": "12.1.6",
+  "version": "8148.0.3",
   "unity": "2021.2",
-  "displayName": "Core RP Library",
+  "displayName": "SLZ Core RP Library",
+  "hideInEditor": false,
   "dependencies": {
       "com.unity.ugui": "1.0.0",
       "com.unity.modules.physics": "1.0.0",
@@ -19,3 +20,4 @@
   "url": "http://www.stresslevelzero.com/"
   }
 }
+
