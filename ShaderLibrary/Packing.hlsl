@@ -214,11 +214,26 @@ real3 UnpackNormalmapRGorAG(real4 packedNormal, real scale = 1.0)
 //New - Decode hemi octahedral coordinates to normal vector, without normalization
 real3 UnpackNormalHemiOctEncodeNoNormalize(real2 f)
 {
+
     real2 val = real2(f.x + f.y, f.x - f.y);
+    // =real2(0.7071 * (f.x + f.y - f.x + f.y), 0.7071 * (f.x + f.y + f.x - f.y))
+    // =real2(0.7071 * 2 * f.y, 0.7071 * 2 * f.x); 
+    //real2 val = real2(1.414213562373095048801688 * f.y, -1.414213562373095048801688 * f.x);//real2(x2 + y2, x2 - y2);
     //real2 safeVal;// = abs(val);
     //safeVal.x = val.x < -1.0E9 ? -val.x : val.x;
     //safeVal.y = val.y < -1.0E9 ? -val.y : val.y;
     real3 n = real3(val, 2.0 - abs(val.x) - abs(val.y));
+    
+    // rotate vector by 45. Vector stored in normal maps is rotated by 45 to improve
+    // compression behavior with BC7/ASTC. Without the rotation, the x and y color gradients
+    // almost always follow the diagonals. This absolutely wreaks havok on the partitioning
+    // schemes used by BC7/BC6H/ASTC. Rotating by 45 aligns the gradients to the U and V
+    // directions which works way better in most cases
+  
+    float x2 = 0.70710678118654752 * (n.x + n.y);
+    float y2 = 0.70710678118654752 * (-n.x + n.y);
+    n.x = x2;
+    n.y = y2;
     return n;
 }
 
