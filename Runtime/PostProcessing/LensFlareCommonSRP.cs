@@ -1,3 +1,5 @@
+using UnityEngine.Experimental.Rendering;
+
 namespace UnityEngine.Rendering
 {
     /// <summary>
@@ -67,7 +69,7 @@ namespace UnityEngine.Rendering
         {
         }
 
-        private static readonly bool s_SupportsLensFlareTexFormat = SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RFloat);
+        private static readonly bool s_SupportsLensFlareTexFormat = SystemInfo.IsFormatSupported(GraphicsFormat.R32_SFloat, FormatUsage.Render);
 
         /// <summary>
         /// Check if we can use an OcclusionRT
@@ -351,6 +353,21 @@ namespace UnityEngine.Rendering
             return ShapeAttenuationDirLight(forward, wo);
         }
 
+        static bool IsLensFlareSRPHidden(Camera cam, LensFlareComponentSRP comp, LensFlareDataSRP data)
+        {
+            if (!comp.enabled ||
+                !comp.gameObject.activeSelf ||
+                !comp.gameObject.activeInHierarchy ||
+                data == null ||
+                data.elements == null ||
+                data.elements.Length == 0 ||
+                comp.intensity <= 0.0f ||
+                ((cam.cullingMask & (1 << comp.gameObject.layer)) == 0))
+                return true;
+
+            return false;
+        }
+
         /// <summary>
         /// Compute internal parameters needed to render single flare
         /// </summary>
@@ -480,15 +497,9 @@ namespace UnityEngine.Rendering
                 LensFlareComponentSRP comp = info.comp;
                 LensFlareDataSRP data = comp.lensFlareData;
 
-                if (!comp.enabled ||
-                    !comp.gameObject.activeSelf ||
-                    !comp.gameObject.activeInHierarchy ||
-                    data == null ||
-                    data.elements == null ||
-                    data.elements.Length == 0 ||
+                if (IsLensFlareSRPHidden(cam, comp, data) ||
                     !comp.useOcclusion ||
-                    (comp.useOcclusion && comp.sampleCount == 0) ||
-                    comp.intensity <= 0.0f)
+                    (comp.useOcclusion && comp.sampleCount == 0))
                     continue;
 
                 if (comp.useBackgroundCloudOcclusion)
@@ -658,13 +669,7 @@ namespace UnityEngine.Rendering
                 LensFlareComponentSRP comp = info.comp;
                 LensFlareDataSRP data = comp.lensFlareData;
 
-                if (!comp.enabled ||
-                    !comp.gameObject.activeSelf ||
-                    !comp.gameObject.activeInHierarchy ||
-                    data == null ||
-                    data.elements == null ||
-                    data.elements.Length == 0 ||
-                    comp.intensity <= 0.0f ||
+                if (IsLensFlareSRPHidden(cam, comp, data) ||
                     !comp.useOcclusion ||
                     (comp.useOcclusion && comp.sampleCount == 0))
                     continue;
@@ -722,7 +727,11 @@ namespace UnityEngine.Rendering
                 float distanceAttenuation = !isDirLight && comp.distanceAttenuationCurve.length > 0 ? comp.distanceAttenuationCurve.Evaluate(coefDistSample) : 1.0f;
                 float scaleByDistance = !isDirLight && comp.scaleByDistanceCurve.length >= 1 ? comp.scaleByDistanceCurve.Evaluate(coefScaleSample) : 1.0f;
 
-                Vector3 dir = (cam.transform.position - comp.transform.position).normalized;
+                Vector3 dir;
+                if (isDirLight)
+                    dir = comp.transform.forward;
+                else
+                    dir = (cam.transform.position - comp.transform.position).normalized;
                 Vector3 screenPosZ = WorldToViewport(cam, !isDirLight, isCameraRelative, viewProjMatrix, positionWS + dir * comp.occlusionOffset);
 
                 float adjustedOcclusionRadius = isDirLight ? comp.celestialProjectedOcclusionRadius(cam) : comp.occlusionRadius;
@@ -889,13 +898,7 @@ namespace UnityEngine.Rendering
                 LensFlareComponentSRP comp = info.comp;
                 LensFlareDataSRP data = comp.lensFlareData;
 
-                if (!comp.enabled ||
-                    !comp.gameObject.activeSelf ||
-                    !comp.gameObject.activeInHierarchy ||
-                    data == null ||
-                    data.elements == null ||
-                    data.elements.Length == 0 ||
-                    comp.intensity <= 0.0f)
+                if (IsLensFlareSRPHidden(cam, comp, data))
                     continue;
 
 #if UNITY_EDITOR

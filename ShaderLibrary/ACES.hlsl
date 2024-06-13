@@ -1,7 +1,7 @@
 #ifndef __ACES__
 #define __ACES__
 
-#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3
+#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3 || SHADER_API_SWITCH
 #pragma warning (disable : 3205) // conversion of larger type to smaller
 #endif
 
@@ -133,6 +133,12 @@ static const half3x3 XYZ_2_DCIP3_MAT = {
      0.0412418914, -0.0876390192,  1.1009293786
 };
 
+static const half3x3 XYZ_2_P3D65_MAT = {
+    2.4934969119, -0.9313836179, -0.4027107845,
+    -0.8294889696, 1.7626640603, 0.0236246858,
+    0.0358458302, -0.0761723893, 0.9568845240
+};
+
 static const half3 AP1_RGB2Y = half3(0.272229, 0.674082, 0.0536895);
 
 static const half3x3 RRT_SAT_MAT = {
@@ -225,12 +231,22 @@ half ACES_to_ACEScc(half x)
         return (log2(x) + 9.72) / 17.52;
 }
 
+half ACES_to_ACEScc_fast(half x)
+{
+    // x is clamped to [0, HALF_MAX], skip the <= 0 check
+    return (x < 0.00003051757) ? (log2(0.00001525878 + x * 0.5) + 9.72) / 17.52 : (log2(x) + 9.72) / 17.52;
+}
+
 half3 ACES_to_ACEScc(half3 x)
 {
     x = clamp(x, 0.0, HALF_MAX);
 
     // x is clamped to [0, HALF_MAX], skip the <= 0 check
-    return (x < 0.00003051757) ? (log2(0.00001525878 + x * 0.5) + 9.72) / 17.52 : (log2(x) + 9.72) / 17.52;
+    return half3(
+        ACES_to_ACEScc_fast(x.r),
+        ACES_to_ACEScc_fast(x.g),
+        ACES_to_ACEScc_fast(x.b)
+        );
 
     /*
     return half3(
@@ -773,11 +789,6 @@ half roll_white_fwd(
     else
         o = -((t * a + b) * t + c);
     return o;
-}
-
-half3 linear_to_sRGB(half3 x)
-{
-    return (x <= 0.0031308 ? (x * 12.9232102) : 1.055 * pow(x, 1.0 / 2.4) - 0.055);
 }
 
 half3 linear_to_bt1886(half3 x, half gamma, half Lw, half Lb)
@@ -1502,7 +1513,7 @@ half3 ODT_4000nits_ToAP1(half3 oces)
 
     return rgbPost;
 }
-#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3
+#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3 || SHADER_API_SWITCH
 #pragma warning (enable : 3205) // conversion of larger type to smaller
 #endif
 

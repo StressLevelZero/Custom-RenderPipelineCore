@@ -1,4 +1,5 @@
 # Changelog
+
 All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
@@ -8,6 +9,39 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 Version Updated
 The version number for this package has increased due to a version update of a related graphics package.
+
+## [14.0.10] - 2024-04-03
+
+This version is compatible with Unity 2022.3.24f1.
+
+### Fixed
+- Fixed lens flare occlusion format support test.
+- Fixed DebugUI.Button not working in Rendering Debugger runtime UI.
+
+## [14.0.9] - 2023-12-21
+
+This version is compatible with Unity 2022.3.18f1.
+
+### Fixed
+- Avoid getting UnityEditor.SceneManagement.PrefabStage with reflection from the static ctor of CoreUtils.
+- Don't display help icon for VolumeComponents that don't have a valid Help URL defined.
+
+## [14.0.8] - 2023-09-27
+
+This version is compatible with Unity 2022.3.11f1.
+
+### Added
+- Added callbacks when RenderPipeline is created or disposed.
+- ObjectID Render Request that provides a render texture with the ObjectId of each pixel.
+
+### Fixed
+- Fixed potentially broken rendering and errors after renaming a VolumeProfile asset.
+- Fixed popup showing multiple time when trying to remove additional data while in multi selection..
+- Removed some unexpected SRP changed callback invocations.
+- Fixed Rendering Debugger runtime UI getting occluded by user UI with sorting order larger than 0.
+- Fixed console errors when debug actions are removed from Input Manager during play mode.
+- When building for Built-in, shaders from any SRP are completely stripped.
+- Fixed occasional ArgumentOutOfRangeException in StaticLightingSky.
 
 ## [14.0.7] - 2023-05-23
 

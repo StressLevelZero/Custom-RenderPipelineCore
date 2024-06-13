@@ -226,9 +226,10 @@ uint GetIndexData(APVResources apvRes, float3 posWS)
     {
         float3 residualPosWS = posWS - topLeftCellWS;
         int3 localBrickIndex = floor(residualPosWS / (_MinBrickSize * stepSize));
+        localBrickIndex = min(localBrickIndex, (int3)(3 * 3 * 3 - 1)); // due to floating point issue, we may query an invalid brick
 
         // Out of bounds.
-        if (any(localBrickIndex < minRelativeIdx || localBrickIndex >= maxRelativeIdx))
+        if (any(localBrickIndex < minRelativeIdx) || any(localBrickIndex >= maxRelativeIdx))
         {
             isValidBrick = false;
         }

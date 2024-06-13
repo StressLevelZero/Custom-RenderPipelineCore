@@ -1,7 +1,7 @@
 #ifndef UNITY_PACKING_INCLUDED
 #define UNITY_PACKING_INCLUDED
 
-#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3
+#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3 || SHADER_API_SWITCH
 #pragma warning (disable : 3205) // conversion of larger type to smaller
 #endif
 
@@ -65,19 +65,20 @@ float2 PackNormalOctQuadEncode(float3 n)
     // Optimized version of above code:
     n *= rcp(max(dot(abs(n), 1.0), 1e-6));
     float t = saturate(-n.z);
-    return n.xy + (n.xy >= 0.0 ? t : -t);
+    return n.xy + float2(n.x >= 0.0 ? t : -t, n.y >= 0.0 ? t : -t);
 }
 
 float3 UnpackNormalOctQuadEncode(float2 f)
 {
-    float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    // NOTE: Do NOT use abs() in this line. It causes miscompilations. (UUM-62216, UUM-70600)
+    float3 n = float3(f.x, f.y, 1.0 - (f.x < 0 ? -f.x : f.x) - (f.y < 0 ? -f.y : f.y));
 
     //float2 val = 1.0 - abs(n.yx);
     //n.xy = (n.zz < float2(0.0, 0.0) ? (n.xy >= 0.0 ? val : -val) : n.xy);
 
     // Optimized version of above code:
     float t = max(-n.z, 0.0);
-    n.xy += n.xy >= 0.0 ? -t.xx : t.xx;
+    n.xy += float2(n.x >= 0.0 ? -t : t, n.y >= 0.0 ? -t : t);
 
     return normalize(n);
 }
@@ -660,9 +661,8 @@ float2 Unpack888ToFloat2(float3 x)
 // Pack 2 float values from the [0, 1] range, to an 8 bits float from the [0, 1] range
 float PackFloat2To8(float2 f)
 {
-    float x_expanded = f.x * 15.0;                        // f.x encoded over 4 bits, can have 2^4 = 16 distinct values mapped to [0, 1, ..., 15]
-    float y_expanded = f.y * 15.0;                        // f.y encoded over 4 bits, can have 2^4 = 16 distinct values mapped to [0, 1, ..., 15]
-    float x_y_expanded = x_expanded * 16.0 + y_expanded;  // f.x encoded over higher bits, f.y encoded over the lower bits - x_y values in range [0, 1, ..., 255]
+    float2 i = floor(f * 15.0);                                         // f.x & f.y encoded over 4 bits, can have 2^4 = 16 distinct values mapped to [0, 1, ..., 15]
+    float x_y_expanded = i.x * 16.0 + i.y;                       // f.x encoded over higher bits, f.y encoded over the lower bits - x_y values in range [0, 1, ..., 255]
     return x_y_expanded / 255.0;
 
     // above 4 lines equivalent to:
@@ -680,7 +680,7 @@ float2 Unpack8ToFloat2(float f)
     return float2(x, y);
 }
 
-#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3
+#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3 || SHADER_API_SWITCH
 #pragma warning (enable : 3205) // conversion of larger type to smaller
 #endif
 

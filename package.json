@@ -1,7 +1,7 @@
 {
   "name": "com.unity.render-pipelines.core",
   "description": "SLZ's Modified SRP Core",
-  "version": "8148.1.4",
+  "version": "8148.1.5",
   "unity": "2022.2",
   "displayName": "SLZ Core RP Library",
   "hideInEditor": false,
