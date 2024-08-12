@@ -99,8 +99,8 @@
         #define DEFAULT_UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID;
         #define UNITY_GET_INSTANCE_ID(input)    _GETINSTANCEID(input)
     #else
-        #define DEFAULT_UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID : SV_InstanceID;
-        #define UNITY_GET_INSTANCE_ID(input)    input.instanceID
+		#define DEFAULT_UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID : SV_InstanceID;
+		#define UNITY_GET_INSTANCE_ID(input)    input.instanceID
     #endif
 
 #else
@@ -110,6 +110,8 @@
 #if !defined(UNITY_VERTEX_INPUT_INSTANCE_ID)
 #   define UNITY_VERTEX_INPUT_INSTANCE_ID DEFAULT_UNITY_VERTEX_INPUT_INSTANCE_ID
 #endif
+
+
 
 ////////////////////////////////////////////////////////
 // basic stereo instancing setups
@@ -145,6 +147,14 @@
 #endif
 
 #elif defined(UNITY_STEREO_MULTIVIEW_ENABLED)
+// SLZ MODIFIED - Mirror SPSI behavior for multiview with modified DXC. SPIRV ViewID is visible from every stage, but we have to pass it as an interpolator because there isn't an existing macro that allows us to add an extra input to the fragment outside of the vertex output struct
+	#if defined(SLZ_DXC_MULTIVIEW)
+		#define DEFAULT_UNITY_VERTEX_OUTPUT_STEREO                          uint stereoTargetEyeIndexAsBlendIdx0 : BLENDWEIGHT0;
+		#define DEFAULT_UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output)       output.stereoTargetEyeIndexAsBlendIdx0 = unity_StereoEyeIndex
+		#define DEFAULT_UNITY_TRANSFER_VERTEX_OUTPUT_STEREO(input, output)  output.stereoTargetEyeIndexAsBlendIdx0 = input.stereoTargetEyeIndexAsBlendIdx0;
+		#define DEFAULT_UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input)     unity_StereoEyeIndex = input.stereoTargetEyeIndexAsBlendIdx0;
+	#else // SLZ_DXC_MULTIVIEW
+	
     #define DEFAULT_UNITY_VERTEX_OUTPUT_STEREO float stereoTargetEyeIndexAsBlendIdx0 : BLENDWEIGHT0;
     #define DEFAULT_UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output) output.stereoTargetEyeIndexAsBlendIdx0 = unity_StereoEyeIndex;
     #define DEFAULT_UNITY_TRANSFER_VERTEX_OUTPUT_STEREO(input, output) output.stereoTargetEyeIndexAsBlendIdx0 = input.stereoTargetEyeIndexAsBlendIdx0;
@@ -153,6 +163,8 @@
     #else
         #define DEFAULT_UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input) unity_StereoEyeIndex = (uint) input.stereoTargetEyeIndexAsBlendIdx0;
     #endif
+	
+	#endif // SLZ_DXC_MULTIVIEW
 #else
     #define DEFAULT_UNITY_VERTEX_OUTPUT_STEREO
     #define DEFAULT_UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output)
@@ -219,14 +231,28 @@
             #error "UNITY_INSTANCING_PROCEDURAL_FUNC must be defined."
         #else
             void UNITY_INSTANCING_PROCEDURAL_FUNC(); // forward declaration of the procedural function
-            #define DEFAULT_UNITY_SETUP_INSTANCE_ID(input)      { UnitySetupInstanceID(UNITY_GET_INSTANCE_ID(input)); UNITY_INSTANCING_PROCEDURAL_FUNC();}
+			#if defined(SLZ_DXC_MULTIVIEW)
+				#define DEFAULT_UNITY_SETUP_INSTANCE_ID(input)      { unity_StereoEyeIndex = input.stereoTargetEyeIndexAsBlendIdx0; UnitySetupInstanceID(UNITY_GET_INSTANCE_ID(input)); UNITY_INSTANCING_PROCEDURAL_FUNC();}
+			#else // SLZ_DXC_MULTIVIEW
+				#define DEFAULT_UNITY_SETUP_INSTANCE_ID(input)      { UnitySetupInstanceID(UNITY_GET_INSTANCE_ID(input)); UNITY_INSTANCING_PROCEDURAL_FUNC();}
+			#endif // SLZ_DXC_MULTIVIEW
         #endif
     #else
-        #define DEFAULT_UNITY_SETUP_INSTANCE_ID(input)          { UnitySetupInstanceID(UNITY_GET_INSTANCE_ID(input));}
+		#if defined(SLZ_DXC_MULTIVIEW)
+			#define DEFAULT_UNITY_SETUP_INSTANCE_ID(input)          { unity_StereoEyeIndex = input.stereoTargetEyeIndexAsBlendIdx0; UnitySetupInstanceID(UNITY_GET_INSTANCE_ID(input));}
+		#else
+			#define DEFAULT_UNITY_SETUP_INSTANCE_ID(input)          { UnitySetupInstanceID(UNITY_GET_INSTANCE_ID(input));}
+		#endif
     #endif
     #define UNITY_TRANSFER_INSTANCE_ID(input, output)   output.instanceID = UNITY_GET_INSTANCE_ID(input)
 #else
+	// SLZ MODIFIED - Use instancing macros to piggyback SPIR-V ViewIndex out of the vertex input struct when using updated DXC.
+	#if defined(SLZ_DXC_MULTIVIEW)
+	#define DEFAULT_UNITY_SETUP_INSTANCE_ID(input) unity_StereoEyeIndex = input.stereoTargetEyeIndexAsBlendIdx0
+	#else
     #define DEFAULT_UNITY_SETUP_INSTANCE_ID(input)
+	#endif //SLZ_DXC_MULTIVIEW
+	
     #define UNITY_TRANSFER_INSTANCE_ID(input, output)
 #endif
 
