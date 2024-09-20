@@ -149,7 +149,7 @@
 #elif defined(UNITY_STEREO_MULTIVIEW_ENABLED)
 // SLZ MODIFIED - Mirror SPSI behavior for multiview with modified DXC. SPIRV ViewID is visible from every stage, but we have to pass it as an interpolator because there isn't an existing macro that allows us to add an extra input to the fragment outside of the vertex output struct
 	#if defined(SLZ_DXC_MULTIVIEW)
-		#define DEFAULT_UNITY_VERTEX_OUTPUT_STEREO                          uint stereoTargetEyeIndexAsBlendIdx0 : BLENDWEIGHT0;
+		#define DEFAULT_UNITY_VERTEX_OUTPUT_STEREO                          nointerpolation uint stereoTargetEyeIndexAsBlendIdx0 : EYEIDX;
 		#define DEFAULT_UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output)       output.stereoTargetEyeIndexAsBlendIdx0 = unity_StereoEyeIndex
 		#define DEFAULT_UNITY_TRANSFER_VERTEX_OUTPUT_STEREO(input, output)  output.stereoTargetEyeIndexAsBlendIdx0 = input.stereoTargetEyeIndexAsBlendIdx0;
 		#define DEFAULT_UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input)     unity_StereoEyeIndex = input.stereoTargetEyeIndexAsBlendIdx0;
