@@ -1,6 +1,9 @@
 #ifndef UNITY_INSTANCING_INCLUDED
 #define UNITY_INSTANCING_INCLUDED
 
+// Unity's "caching preprocessor" they forced in 2022 is glitchy and will reuse old versions of files if their dependencies change
+#define UNITY_INSTANCING_INVALIDATE_CACHED_PREPROCESSOR_RESULTS 2
+
 #if SHADER_TARGET >= 35 && (defined(SHADER_API_D3D11) || defined(SHADER_API_GLES3) || defined(SHADER_API_GLCORE) || defined(SHADER_API_XBOXONE) || defined(SHADER_API_GAMECORE) || defined(SHADER_API_PSSL) || defined(SHADER_API_VULKAN) || defined(SHADER_API_METAL))
     #define UNITY_SUPPORT_INSTANCING
 #endif

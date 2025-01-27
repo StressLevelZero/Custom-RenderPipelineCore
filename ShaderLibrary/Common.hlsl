@@ -129,6 +129,22 @@
 #define REAL_IS_HALF 0
 #endif // Do we have half?
 
+// min precision float for storage types (vertex and interpolator structs, cbuffers, textures, etc)
+// Qualcomm does not support VK_KHR_16bit_storage so we can't allow half-types in any interface varaibles!
+#define minFS float
+#define minFS2 float2
+#define minFS3 float3
+#define minFS4 float4
+#define minFS2x2 float2x2
+#define minFS2x3 float2x3
+#define minFS2x4 float2x4
+#define minFS3x2 float3x2
+#define minFS3x3 float3x3
+#define minFS3x4 float3x4
+#define minFS4x2 float4x2
+#define minFS4x3 float4x3
+#define minFS4x4 float4x4
+
 #if REAL_IS_HALF || (defined(UNITY_UNIFIED_SHADER_PRECISION_MODEL) && (defined(UNITY_COMPILER_HLSL) || defined(UNITY_COMPILER_DXC)))
 #define half min16float
 #define half2 min16float2
@@ -793,7 +809,9 @@ TEMPLATE_2_REAL(SafePositivePow, base, power, return pow(max(abs(base), real(REA
 
 // Helpers for making shadergraph functions consider precision spec through the same $precision token used for variable types
 TEMPLATE_2_FLT(SafePositivePow_float, base, power, return pow(max(abs(base), float(FLT_EPS)), power))
+#if REAL_IS_HALF
 TEMPLATE_2_HALF(SafePositivePow_half, base, power, return pow(max(abs(base), half(HALF_EPS)), power))
+#endif
 
 float Eps_float() { return FLT_EPS; }
 float Min_float() { return FLT_MIN; }
