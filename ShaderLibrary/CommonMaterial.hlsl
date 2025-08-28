@@ -304,9 +304,16 @@ real3 BlendNormalWorldspaceRNM(real3 n1, real3 n2, real3 vtxNormal)
 // assume compositing in tangent space
 real3 BlendNormalRNM(real3 n1, real3 n2)
 {
+/// SLZ MODIFIED - Mathmatically equivalent, but according to the Adreno offline compiler this exchanges a full precision register for a half register when compiling with DXC
+/*
     real3 t = n1.xyz + real3(0.0, 0.0, 1.0);
     real3 u = n2.xyz * real3(-1.0, -1.0, 1.0);
     real3 r = (t / t.z) * dot(t, u) - u;
+    return r;
+	*/
+	n1.z += 1;
+    n2.xy = -n2.xy;
+    real3 r = (n1 / n1.z) * dot(n1, n2) - n2;
     return r;
 }
 

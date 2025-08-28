@@ -29,11 +29,15 @@ namespace UnityEngine.Rendering
         {
             if (firstTimeCreated)
             {
+#if UNITY_6000_0_OR_NEWER
+                renderPipelineAsset = GraphicsSettings.defaultRenderPipeline;
+#else
                 renderPipelineAsset = GraphicsSettings.renderPipelineAsset;
+#endif
                 firstTimeCreated = false;
             }
             
-#if ENABLE_CLOUD_SERVICES_ANALYTICS
+#if false //ENABLE_CLOUD_SERVICES_ANALYTICS
             //Send analytics each time to find usage in content dl on the asset store too
             SceneRenderPipelineAnalytic.Send(this);
 #endif
@@ -41,10 +45,14 @@ namespace UnityEngine.Rendering
 
         void OnEnable()
         {
+#if UNITY_6000_0_OR_NEWER
+            GraphicsSettings.defaultRenderPipeline = renderPipelineAsset;
+#else
             GraphicsSettings.renderPipelineAsset = renderPipelineAsset;
+#endif
         }
 
-#if ENABLE_CLOUD_SERVICES_ANALYTICS
+#if false //ENABLE_CLOUD_SERVICES_ANALYTICS
         static class SceneRenderPipelineAnalytic
         {
             const int k_MaxEventsPerHour = 100;
