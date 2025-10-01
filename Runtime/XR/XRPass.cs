@@ -288,10 +288,10 @@ namespace UnityEngine.Experimental.Rendering
         /// </summary>
         /// <param name="cmd">CommandBuffer to modify</param>
         /// <param name="renderIntoTexture">Set to true when rendering into a render texture. Used for handling Unity yflip.</param>
-        public void RenderOcclusionMesh(CommandBuffer cmd, bool renderIntoTexture = false)
+        public void RenderOcclusionMesh(CommandBuffer cmd, bool renderIntoTexture = false, Material overrideMaterial = null)
         {
             if(occlusionMeshScale > 0)
-                m_OcclusionMesh.RenderOcclusionMesh(cmd, occlusionMeshScale, renderIntoTexture);
+                m_OcclusionMesh.RenderOcclusionMesh(cmd, occlusionMeshScale, renderIntoTexture, overrideMaterial);
         }
 
         /// <summary>
