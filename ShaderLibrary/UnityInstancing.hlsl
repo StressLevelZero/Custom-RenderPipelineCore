@@ -267,10 +267,21 @@
 // instanced property arrays
 #if defined(UNITY_INSTANCING_ENABLED) || defined(UNITY_DOTS_INSTANCING_ENABLED)
 
+    // Unity uses a specialization constant to define the size of instancing buffers. 
+    // In the normal FXC->HLSLcc->SPIRV-Cross build chain, unity injects the specialization constant by
+    // finding constant buffers with a specific name prefix and swapping out arrays of length 2 with the spec constant as the length
+    // While DXC can declare specialization constants, we can't assign it as the array length. HLSL has no clue what a specialization constant is
+    // and it thinks we're trying to make a C99 variable length array, which is completely forbidden in HLSL.
+    #if defined(UNITY_COMPILER_DXC) && defined(SHADER_API_VULKAN) && defined(SHADER_API_MOBILE)
+	    //[[vk::constant_id(0)]] const uint unity_instanced_array_size_ = 2;
+	    //#define UNITY_INSTANCED_ARRAY_SIZE  unity_instanced_array_size_
+        #undef UNITY_INSTANCING_SUPPORT_FLEXIBLE_ARRAY_SIZE
+	#endif
+
     #ifdef UNITY_FORCE_MAX_INSTANCE_COUNT
         #define UNITY_INSTANCED_ARRAY_SIZE  UNITY_FORCE_MAX_INSTANCE_COUNT
     #elif defined(UNITY_INSTANCING_SUPPORT_FLEXIBLE_ARRAY_SIZE)
-        #define UNITY_INSTANCED_ARRAY_SIZE  2 // minimum array size that ensures dynamic indexing
+		#define UNITY_INSTANCED_ARRAY_SIZE  2 // minimum array size that ensures dynamic indexing
     #elif defined(UNITY_MAX_INSTANCE_COUNT)
         #define UNITY_INSTANCED_ARRAY_SIZE  UNITY_MAX_INSTANCE_COUNT
     #else
