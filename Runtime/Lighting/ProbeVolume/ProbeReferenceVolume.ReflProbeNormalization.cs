@@ -133,7 +133,9 @@ namespace UnityEngine.Rendering
 
         private void RemoveRequestsFromLightmapper()
         {
+			#if !UNITY_6000_3_OR_NEWER
             UnityEditor.Experimental.Lightmapping.SetAdditionalBakedProbes(s_BakingID, null);
+			#endif
         }
 
         private void OnAdditionalProbesBakeCompleted()
