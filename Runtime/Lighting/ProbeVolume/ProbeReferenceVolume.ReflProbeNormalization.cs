@@ -123,7 +123,9 @@ namespace UnityEngine.Rendering
 
         internal void AddRequestsToLightmapper()
         {
+#if !UNITY_6000_3_OR_NEWER
             UnityEditor.Experimental.Lightmapping.SetAdditionalBakedProbes(s_BakingID, (new List<Vector3>(m_RequestPositions.Values)).ToArray());
+#endif
 
             Lightmapping.bakeCompleted -= OnAdditionalProbesBakeCompleted;
             Lightmapping.bakeCompleted += OnAdditionalProbesBakeCompleted;
@@ -143,8 +145,11 @@ namespace UnityEngine.Rendering
             var sh = new NativeArray<SphericalHarmonicsL2>(m_RequestPositions.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             var validity = new NativeArray<float>(m_RequestPositions.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
             var bakedProbeOctahedralDepth = new NativeArray<float>(m_RequestPositions.Count * 64, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-
+#if !UNITY_6000_3_OR_NEWER
             if (UnityEditor.Experimental.Lightmapping.GetAdditionalBakedProbes(s_BakingID, sh, validity, bakedProbeOctahedralDepth))
+#else
+            if (false)
+#endif
             {
                 SetSHCoefficients(sh, validity);
             }

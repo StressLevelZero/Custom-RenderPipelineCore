@@ -77,7 +77,9 @@ namespace UnityEngine.Rendering
 
         public void Clear()
         {
+#if !UNITY_6000_3_OR_NEWER
             UnityEditor.Experimental.Lightmapping.SetAdditionalBakedProbes(index, null);
+#endif
             cells.Clear();
             cellIndex2SceneReferences.Clear();
         }
@@ -990,7 +992,9 @@ namespace UnityEngine.Rendering
             m_BakingBatchIndex = 0;
 
             // Reset index
+			#if !UNITY_6000_3_OR_NEWER
             UnityEditor.Experimental.Lightmapping.SetAdditionalBakedProbes(m_BakingBatch.index, null);
+			#endif
 
             // Extract baking cell if we are baking only active scene.
             if (isBakingSceneSubset)
@@ -1742,8 +1746,10 @@ namespace UnityEngine.Rendering
                 {
                     // Dequeue the call if something has failed.
                     UnityEditor.Experimental.Lightmapping.additionalBakedProbesCompleted -= OnAdditionalProbesBakeCompleted;
+					#if !UNITY_6000_3_OR_NEWER
                     if (m_BakingBatch != null)
                         UnityEditor.Experimental.Lightmapping.SetAdditionalBakedProbes(m_BakingBatch.index, null);
+					#endif
 
                     RestorePhysicsComponentsAfterBaking();
                     CleanupOccluders();
@@ -1988,8 +1994,9 @@ namespace UnityEngine.Rendering
             // Virtually offset positions before passing them to lightmapper
             using (new BakingSetupProfiling(BakingSetupProfiling.Stages.ApplyVirtualOffsets))
                 ApplyVirtualOffsets(positions, out m_BakingBatch.virtualOffsets);
-
+#if !UNITY_6000_3_OR_NEWER
             UnityEditor.Experimental.Lightmapping.SetAdditionalBakedProbes(m_BakingBatch.index, positions);
+#endif
         }
     }
 }
