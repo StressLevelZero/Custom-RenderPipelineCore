@@ -751,8 +751,9 @@ namespace UnityEngine.Rendering
             currentBakingState = BakingStage.OnBakeCompletedStarted;
 
             using var scope = new BakingCompleteProfiling(BakingCompleteProfiling.Stages.FinalizingBake);
-
+#if !UNITY_6000_3_OR_NEWER
             UnityEditor.Experimental.Lightmapping.additionalBakedProbesCompleted -= OnAdditionalProbesBakeCompleted;
+#endif
             s_ForceInvalidatedProbesAndTouchupVols.Clear();
             s_CustomDilationThresh.Clear();
 
@@ -769,7 +770,12 @@ namespace UnityEngine.Rendering
             if (numUniqueProbes != 0)
             {
                 var bakedProbeOctahedralDepth = new NativeArray<float>(numUniqueProbes * 64, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                bool validBakedProbes = UnityEditor.Experimental.Lightmapping.GetAdditionalBakedProbes(m_BakingBatch.index, sh, validity, bakedProbeOctahedralDepth);
+                bool validBakedProbes = 
+                #if !UNITY_6000_3_OR_NEWER
+                    UnityEditor.Experimental.Lightmapping.GetAdditionalBakedProbes(m_BakingBatch.index, sh, validity, bakedProbeOctahedralDepth);
+                #else
+                    false;
+                #endif
                 bakedProbeOctahedralDepth.Dispose();
 
                 if (!validBakedProbes)
@@ -1745,11 +1751,11 @@ namespace UnityEngine.Rendering
                 else
                 {
                     // Dequeue the call if something has failed.
+#if !UNITY_6000_3_OR_NEWER
                     UnityEditor.Experimental.Lightmapping.additionalBakedProbesCompleted -= OnAdditionalProbesBakeCompleted;
-					#if !UNITY_6000_3_OR_NEWER
                     if (m_BakingBatch != null)
                         UnityEditor.Experimental.Lightmapping.SetAdditionalBakedProbes(m_BakingBatch.index, null);
-					#endif
+#endif
 
                     RestorePhysicsComponentsAfterBaking();
                     CleanupOccluders();
@@ -1766,7 +1772,9 @@ namespace UnityEngine.Rendering
 
         public static void RunPlacement()
         {
+#if !UNITY_6000_3_OR_NEWER
             UnityEditor.Experimental.Lightmapping.additionalBakedProbesCompleted += OnAdditionalProbesBakeCompleted;
+#endif
             ProbeReferenceVolume.instance.checksDuringBakeAction = CheckPVChanges;
             AdditionalGIBakeRequestsManager.instance.AddRequestsToLightmapper();
             Lightmapping.bakeCompleted += OnBakeCompletedCleanup;
